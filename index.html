@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoE 3.28: Volatile Analyst Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --poe-gold: #eab308; --poe-bg: #0a0a0a; --poe-card: #141414; --poe-border: #3d3423; }
+        body { background-color: var(--poe-bg); color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .poe-font { font-family: 'Cinzel', serif; }
+        .card { background-color: var(--poe-card); border: 1px solid var(--poe-border); }
+        .input-group { display: flex; background: #000; border: 1px solid #444; border-radius: 2px; }
+        input, select { background: transparent; color: white; padding: 8px; outline: none; width: 100%; }
+        .input-group select { width: 50px; border-left: 1px solid #444; background: #1a1a1a; font-size: 0.7rem; }
+        .btn-poe { background: linear-gradient(180deg, #5c4d32 0%, #3d3423 100%); border: 1px solid var(--poe-gold); color: var(--poe-gold); font-family: 'Cinzel'; transition: all 0.2s; cursor: pointer; }
+        .btn-poe:hover { background: var(--poe-gold); color: black; box-shadow: 0 0 10px rgba(234, 179, 8, 0.3); }
+        .mod-box { border-left: 2px solid var(--poe-gold); padding: 12px; margin-bottom: 20px; position: relative; background: rgba(255,255,255,0.02); }
+        label { display: block; font-size: 0.65rem; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+        .base-clarification { font-size: 0.55rem; color: #eab308; opacity: 0.8; font-style: italic; display: none; margin-bottom: 8px; border-bottom: 1px solid #3d3423; padding-bottom: 4px; }
+        .multiplier-input { width: 45px !important; text-align: center; border-bottom: 1px solid #555 !important; padding: 0 !important; font-size: 0.75rem; color: #eab308; }
+        .currency-icon { width: 24px; height: 24px; object-fit: contain; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 flex flex-col md:flex-row justify-between items-center border-b border-yellow-900 pb-4">
+            <div class="text-center md:text-left flex items-center gap-4">
+                <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvVm9sYXRpbGVWYWFsT3JiIiwic2NhbGUiOjF9XQ/9bcdda2c63/VolatileVaalOrb.png" alt="Volatile Vaal Orb" class="w-12 h-12">
+                <div>
+                    <h1 class="text-4xl font-bold text-yellow-600">Volatile Analyst</h1>
+                    <p class="text-gray-500 text-[10px] tracking-[0.4em] uppercase">PoE 3.28 Investment Forecaster</p>
+                </div>
+            </div>
+            <div class="mt-4 md:mt-0 bg-black p-2 border border-yellow-900 px-4 flex items-center gap-3">
+                <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="currency-icon" alt="Divine">
+                <label class="m-0">1 Divine =</label>
+                <input type="number" id="divPrice" value="315" class="bg-transparent text-yellow-500 w-16 font-mono font-bold text-center border-b border-gray-700 outline-none" onchange="calculate()">
+                <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="currency-icon" alt="Chaos">
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div class="space-y-6">
+                <div class="card p-5">
+                    <h2 class="text-sm text-yellow-500 mb-4 poe-font border-b border-yellow-900 pb-2">Investment Costs</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label>Base Item Price</label>
+                            <div class="input-group">
+                                <input type="number" id="itemPrice" value="150" onchange="calculate()">
+                                <select id="itemUnit" onchange="calculate()"><option value="c">c</option><option value="d">d</option></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Prep (Enchant/Quality/Fee)</label>
+                            <div class="input-group">
+                                <input type="number" id="prepPrice" value="0" onchange="calculate()">
+                                <select id="prepUnit" onchange="calculate()"><option value="c">c</option><option value="d">d</option></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Volatile Orb Price</label>
+                            <div class="input-group">
+                                <input type="number" id="orbPrice" value="375" onchange="calculate()">
+                                <select id="orbUnit" onchange="calculate()"><option value="c">c</option><option value="d">d</option></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-4 border-b border-yellow-900 pb-2">
+                        <h2 class="text-sm text-yellow-500 poe-font">Modifier Logic</h2>
+                        <button onclick="addModifier()" class="text-[10px] text-yellow-700 hover:text-yellow-400 uppercase font-bold tracking-tighter">+ Add Mod</button>
+                    </div>
+                    <div id="modContainer">
+                        <div class="mod-box">
+                            <span class="base-clarification">SPECIFY RAW BASE VALUES BEFORE QUALITY/ENCHANTS:</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><label>Min</label><input type="number" class="modMin bg-black border border-gray-800 p-1 w-full text-sm" value="10" onchange="calculate()"></div>
+                                <div><label>Max</label><input type="number" class="modMax bg-black border border-gray-800 p-1 w-full text-sm" value="20" onchange="calculate()"></div>
+                            </div>
+                            <div class="mt-2">
+                                <label>Target Value</label>
+                                <input type="number" class="modTarget bg-black border border-gray-800 p-1 w-full text-sm" value="28" onchange="calculate()">
+                            </div>
+                            <select class="modMode bg-black border border-gray-800 p-1 w-full text-[10px] mt-2 text-gray-400" onchange="calculate()">
+                                <option value="atLeast" selected>Result is ≥ Target (Max)</option>
+                                <option value="atMost">Result is ≤ Target (Min)</option>
+                            </select>
+                            <div class="flex items-center gap-2 mt-3">
+                                <input type="checkbox" class="modExtToggle w-3 h-3 cursor-pointer" checked onchange="calculate()">
+                                <label class="m-0 text-[9px] text-gray-400 cursor-pointer">
+                                    Final Multiplier: +<input type="number" class="multiplier-input modExtVal" value="20" onchange="calculate()">%
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="card p-4 text-center relative overflow-hidden">
+                        <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvVm9sYXRpbGVWYWFsT3JiIiwic2NhbGUiOjF9XQ/9bcdda2c63/VolatileVaalOrb.png" class="absolute -right-2 -bottom-2 w-16 opacity-10 pointer-events-none" alt="">
+                        <label>Hit Chance per Orb</label>
+                        <div id="resProb" class="text-3xl font-bold text-blue-400 poe-font">-</div>
+                        <p class="text-[9px] text-gray-500 mt-1 uppercase">(Inc. 50% Poof Chance)</p>
+                    </div>
+                    <div class="card p-4 text-center border-yellow-900/50 relative overflow-hidden">
+                        <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="absolute -right-2 -bottom-2 w-16 opacity-10 pointer-events-none" alt="">
+                        <label>Avg Total Investment</label>
+                        <div id="resAvgDiv" class="text-3xl font-bold text-yellow-500 poe-font">-</div>
+                        <div id="resAvgChaos" class="text-xs text-gray-400">-</div>
+                    </div>
+                    <div class="card p-4 text-center border-red-900/50 relative overflow-hidden">
+                         <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="absolute -right-2 -bottom-2 w-16 opacity-10 pointer-events-none" alt="">
+                        <label>95% Confidence Cost</label>
+                        <div id="resRisk" class="text-3xl font-bold text-red-600 poe-font">-</div>
+                        <p class="text-[9px] text-gray-500 mt-1 uppercase italic">Safety budget for bad luck</p>
+                    </div>
+                </div>
+
+                <div class="card p-6 min-h-[450px]">
+                    <h3 class="poe-font text-yellow-600 mb-4 text-xs tracking-widest uppercase">Outcome Weighting Distribution (Mod 1)</h3>
+                    <div class="relative h-[380px]">
+                        <canvas id="distChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="card p-3 text-[10px] uppercase text-gray-400 flex justify-between items-center px-6">
+                        <span>Avg Orbs Needed: <span id="statOrbs" class="text-white ml-2 font-mono">-</span></span>
+                        <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvVm9sYXRpbGVWYWFsT3JiIiwic2NhbGUiOjF9XQ/9bcdda2c63/VolatileVaalOrb.png" class="w-6 h-6" alt="">
+                    </div>
+                    <div class="card p-3 text-[10px] uppercase text-gray-400 flex justify-between items-center px-6">
+                        <span>Avg Bases Bought: <span id="statBases" class="text-white ml-2 font-mono">-</span></span>
+                        <div class="w-6 h-6 border border-gray-700 bg-gray-900 rounded-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chartInstance = null;
+
+        function addModifier() {
+            const html = `
+                <div class="mod-box">
+                    <button onclick="this.parentElement.remove();calculate()" class="absolute top-0 right-1 text-red-900 text-xs">×</button>
+                    <span class="base-clarification">SPECIFY RAW BASE VALUES BEFORE QUALITY/ENCHANTS:</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label>Min</label><input type="number" class="modMin bg-black border border-gray-800 p-1 w-full text-sm" value="3" onchange="calculate()"></div>
+                        <div><label>Max</label><input type="number" class="modMax bg-black border border-gray-800 p-1 w-full text-sm" value="4" onchange="calculate()"></div>
+                    </div>
+                    <div class="mt-2">
+                        <label>Target Value</label>
+                        <input type="number" class="modTarget bg-black border border-gray-800 p-1 w-full text-sm" value="5" onchange="calculate()">
+                    </div>
+                    <select class="modMode bg-black border border-gray-800 p-1 w-full text-[10px] mt-2 text-gray-400" onchange="calculate()">
+                        <option value="atLeast" selected>Result is ≥ Target (Max)</option>
+                        <option value="atMost">Result is ≤ Target (Min)</option>
+                    </select>
+                    <div class="flex items-center gap-2 mt-3">
+                        <input type="checkbox" class="modExtToggle w-3 h-3 cursor-pointer" onchange="calculate()">
+                        <label class="m-0 text-[9px] text-gray-400 cursor-pointer">
+                            Final Multiplier: +<input type="number" class="multiplier-input modExtVal" value="8" onchange="calculate()">%
+                        </label>
+                    </div>
+                </div>`;
+            document.getElementById('modContainer').insertAdjacentHTML('beforeend', html);
+            calculate();
+        }
+
+        function calculate() {
+            const divRatio = parseFloat(document.getElementById('divPrice').value) || 315;
+            const itemC = getC('itemPrice', 'itemUnit', divRatio);
+            const prepC = getC('prepPrice', 'prepUnit', divRatio);
+            const orbC = getC('orbPrice', 'orbUnit', divRatio);
+            const totalBaseC = itemC + prepC;
+
+            const mods = Array.from(document.querySelectorAll('.mod-box')).map(el => {
+                const extActive = el.querySelector('.modExtToggle').checked;
+                el.querySelector('.base-clarification').style.display = extActive ? 'block' : 'none';
+                return {
+                    min: parseInt(el.querySelector('.modMin').value),
+                    max: parseInt(el.querySelector('.modMax').value),
+                    target: parseInt(el.querySelector('.modTarget').value),
+                    mode: el.querySelector('.modMode').value,
+                    extActive: extActive,
+                    extVal: (parseInt(el.querySelector('.modExtVal').value) / 100) + 1
+                };
+            });
+
+            if (mods.length === 0) return;
+
+            let totalProbPerSurvival = 1;
+            mods.forEach(mod => {
+                let success = 0;
+                let combos = 0;
+                for (let r = mod.min; r <= mod.max; r++) {
+                    for (let m = 78; m <= 122; m++) {
+                        let res = Math.round(r * (m / 100));
+                        if (mod.extActive) res = Math.floor(res * mod.extVal);
+                        const isWin = mod.mode === 'atMost' ? res <= mod.target : res >= mod.target;
+                        if (isWin) success++;
+                        combos++;
+                    }
+                }
+                totalProbPerSurvival *= (success / combos);
+            });
+
+            const pFinal = 0.5 * totalProbPerSurvival;
+            if (pFinal <= 0) {
+                document.getElementById('resProb').innerText = "Impossible";
+                document.getElementById('resAvgDiv').innerText = "-";
+                return;
+            }
+
+            const avgOrbs = 1 / pFinal;
+            const avgBases = 1 + (avgOrbs * 0.5);
+            const avgCostC = (avgOrbs * orbC) + (avgBases * totalBaseC);
+            const riskOrbs = Math.log(1 - 0.95) / Math.log(1 - pFinal);
+            const riskBases = 1 + (riskOrbs * 0.5);
+            const riskCostC = (riskOrbs * orbC) + (riskBases * totalBaseC);
+
+            document.getElementById('resProb').innerText = (pFinal * 100).toFixed(3) + "%";
+            document.getElementById('resAvgDiv').innerText = (avgCostC / divRatio).toFixed(1) + " Div";
+            document.getElementById('resAvgChaos').innerText = Math.ceil(avgCostC).toLocaleString() + " Chaos";
+            document.getElementById('resRisk').innerText = (riskCostC / divRatio).toFixed(1) + " Div";
+            document.getElementById('statOrbs').innerText = avgOrbs.toFixed(1);
+            document.getElementById('statBases').innerText = avgBases.toFixed(1);
+
+            updateChart(mods[0]);
+        }
+
+        function getC(id, uId, r) {
+            const v = parseFloat(document.getElementById(id).value) || 0;
+            return document.getElementById(uId).value === 'd' ? v * r : v;
+        }
+
+        function updateChart(mod) {
+            const freqs = {};
+            let total = 0;
+            for (let r = mod.min; r <= mod.max; r++) {
+                for (let m = 78; m <= 122; m++) {
+                    let res = Math.round(r * (m / 100));
+                    if (mod.extActive) res = Math.floor(res * mod.extVal);
+                    freqs[res] = (freqs[res] || 0) + 1;
+                    total++;
+                }
+            }
+            const labels = Object.keys(freqs).map(Number).sort((a,b) => a-b);
+            const data = labels.map(k => (freqs[k] / total) * 100);
+            const colors = labels.map(k => (mod.mode === 'atMost' ? k <= mod.target : k >= mod.target) ? 'rgba(234, 179, 8, 0.8)' : 'rgba(255, 255, 255, 0.05)');
+
+            if (chartInstance) chartInstance.destroy();
+            const ctx = document.getElementById('distChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#1a1a1a' }, ticks: { color: '#444' } },
+                        x: { grid: { display: false }, ticks: { color: '#888', font: { family: 'Cinzel', size: 10 } } }
+                    }
+                }
+            });
+        }
+        calculate();
+    </script>
+</body>
+</html>
