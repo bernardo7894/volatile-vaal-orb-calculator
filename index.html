@@ -163,8 +163,13 @@
 
     <script>
         let chartInstance = null;
-        const MARKET_LEAGUES_URL = 'https://api.poe.watch/leagues';
-        const MARKET_PRICES_URL = 'https://poe.ninja/poe1/api/economy/stash/current/currency/overview';
+        const PROXY = 'https://poe-proxy.bernardo-7894.workers.dev/?url=';
+        const MARKET_LEAGUES_URL = `${PROXY}${encodeURIComponent('https://api.poe.watch/leagues')}`;
+
+        function getMarketPricesUrl(league) {
+            const target = `https://poe.ninja/poe1/api/economy/stash/current/currency/overview?league=${encodeURIComponent(league)}&type=Currency`;
+            return `${PROXY}${encodeURIComponent(target)}`;
+        }
 
         function setMarketStatus(message, tone = 'neutral') {
             const statusEl = document.getElementById('marketStatus');
@@ -258,7 +263,7 @@
                 if (refreshButton) refreshButton.disabled = true;
                 setMarketStatus(`Fetching prices for ${league}...`);
 
-                const url = `${MARKET_PRICES_URL}?league=${encodeURIComponent(league)}&type=Currency`;
+                const url = getMarketPricesUrl(league);
                 const data = await fetchJson(url);
                 const lines = Array.isArray(data.lines) ? data.lines : [];
 
