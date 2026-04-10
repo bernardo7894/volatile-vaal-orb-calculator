@@ -47,6 +47,21 @@
             <div class="space-y-6">
                 <div class="card p-5">
                     <h2 class="text-sm text-yellow-500 mb-4 poe-font border-b border-yellow-900 pb-2">Investment Costs</h2>
+                    <div class="mb-4 p-3 border border-yellow-900/40 bg-black/40 space-y-3">
+                        <div>
+                            <label>League</label>
+                            <input type="text" id="leagueName" list="leagueList" value="Mirage" class="bg-black border border-gray-800 p-1 w-full text-sm" onchange="handleLeagueChange()">
+                            <datalist id="leagueList"></datalist>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <label class="m-0 text-[9px] text-gray-400 normal-case tracking-normal">
+                                <input type="checkbox" id="autoMarket" class="mr-1 align-middle" checked onchange="handleAutoMarketToggle()">
+                                Auto-fill Divine + Volatile prices from poe.ninja
+                            </label>
+                            <button id="refreshMarketBtn" onclick="refreshMarketPrices(true)" class="btn-poe text-[10px] px-2 py-1">Refresh</button>
+                        </div>
+                        <div id="marketStatus" class="text-[9px] text-gray-500">Loading market prices...</div>
+                    </div>
                     <div class="space-y-4">
                         <div>
                             <label>Base Item Price</label>
@@ -148,6 +163,128 @@
 
     <script>
         let chartInstance = null;
+        const MARKET_LEAGUES_URL = 'https://api.poe.watch/leagues';
+        const MARKET_PRICES_URL = 'https://poe.ninja/poe1/api/economy/stash/current/currency/overview';
+
+        function setMarketStatus(message, tone = 'neutral') {
+            const statusEl = document.getElementById('marketStatus');
+            if (!statusEl) return;
+
+            statusEl.textContent = message;
+            if (tone === 'error') {
+                statusEl.className = 'text-[9px] text-red-500';
+            } else if (tone === 'ok') {
+                statusEl.className = 'text-[9px] text-emerald-400';
+            } else {
+                statusEl.className = 'text-[9px] text-gray-500';
+            }
+        }
+
+        function formatChaos(value) {
+            return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+        }
+
+        async function fetchJson(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        function isActiveLeague(league) {
+            if (!league || !league.end_date) return false;
+            if (league.end_date.startsWith('0001-01-01')) return true;
+            const endDate = Date.parse(league.end_date);
+            return Number.isFinite(endDate) && endDate > Date.now();
+        }
+
+        function pickDefaultLeague(leagues) {
+            const active = leagues.filter(isActiveLeague);
+            const preferred = active.find(league => !/(^|\s)(hardcore|standard|solo self-found|ssf|ruthless|hc)(\s|$)/i.test(league.name));
+            return preferred?.name || active[0]?.name || leagues[0]?.name || 'Mirage';
+        }
+
+        function populateLeagueSuggestions(leagues) {
+            const dataList = document.getElementById('leagueList');
+            if (!dataList) return;
+            dataList.innerHTML = '';
+
+            leagues.forEach(league => {
+                const option = document.createElement('option');
+                option.value = league.name;
+                dataList.appendChild(option);
+            });
+        }
+
+        async function initializeMarketData() {
+            const leagueInput = document.getElementById('leagueName');
+            if (!leagueInput) return;
+
+            try {
+                setMarketStatus('Loading leagues from poe.watch...');
+                const leagues = await fetchJson(MARKET_LEAGUES_URL);
+                if (!Array.isArray(leagues) || leagues.length === 0) throw new Error('No leagues returned');
+
+                populateLeagueSuggestions(leagues);
+                leagueInput.value = pickDefaultLeague(leagues);
+            } catch (error) {
+                setMarketStatus('Could not load leagues from poe.watch. Enter league manually.', 'error');
+            }
+
+            await refreshMarketPrices(true);
+        }
+
+        function handleAutoMarketToggle() {
+            if (document.getElementById('autoMarket').checked) {
+                refreshMarketPrices(true);
+            } else {
+                setMarketStatus('Auto-fill disabled. Manual values stay active.');
+            }
+        }
+
+        function handleLeagueChange() {
+            refreshMarketPrices(document.getElementById('autoMarket').checked);
+        }
+
+        async function refreshMarketPrices(applyPrices = false) {
+            const league = (document.getElementById('leagueName').value || '').trim();
+            const refreshButton = document.getElementById('refreshMarketBtn');
+
+            if (!league) {
+                setMarketStatus('Enter a league name before fetching prices.', 'error');
+                return;
+            }
+
+            try {
+                if (refreshButton) refreshButton.disabled = true;
+                setMarketStatus(`Fetching prices for ${league}...`);
+
+                const url = `${MARKET_PRICES_URL}?league=${encodeURIComponent(league)}&type=Currency`;
+                const data = await fetchJson(url);
+                const lines = Array.isArray(data.lines) ? data.lines : [];
+
+                const divineLine = lines.find(line => line.currencyTypeName === 'Divine Orb');
+                const volatileLine = lines.find(line => line.currencyTypeName === 'Volatile Vaal Orb');
+                if (!divineLine || !volatileLine) throw new Error('Required currency rows were not found');
+
+                const divineChaos = Number(divineLine.chaosEquivalent);
+                const volatileChaos = Number(volatileLine.chaosEquivalent);
+                if (!Number.isFinite(divineChaos) || !Number.isFinite(volatileChaos)) throw new Error('Invalid market values');
+
+                if (applyPrices) {
+                    document.getElementById('divPrice').value = formatChaos(divineChaos);
+                    document.getElementById('orbPrice').value = formatChaos(volatileChaos);
+                    document.getElementById('orbUnit').value = 'c';
+                    calculate();
+                    setMarketStatus(`Updated ${league}: 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c`, 'ok');
+                } else {
+                    setMarketStatus(`Fetched ${league}: 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c (auto-fill is off)`);
+                }
+            } catch (error) {
+                setMarketStatus(`Could not fetch ${league} prices from poe.ninja. Manual values remain active.`, 'error');
+            } finally {
+                if (refreshButton) refreshButton.disabled = false;
+            }
+        }
 
         function addModifier() {
             const html = `
@@ -275,6 +412,7 @@
             });
         }
         calculate();
+        initializeMarketData();
     </script>
 </body>
 </html>
