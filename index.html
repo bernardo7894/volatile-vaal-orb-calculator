@@ -166,9 +166,49 @@
         const PROXY = 'https://poe-proxy.bernardo-7894.workers.dev/?url=';
         const MARKET_LEAGUES_URL = `${PROXY}${encodeURIComponent('https://api.poe.watch/leagues')}`;
 
-        function getMarketPricesUrl(league) {
+        function getExchangePricesUrl(league) {
+            const target = `https://poe.ninja/poe1/api/economy/exchange/current/overview?league=${encodeURIComponent(league)}&type=Currency`;
+            return `${PROXY}${encodeURIComponent(target)}`;
+        }
+
+        function getStashPricesUrl(league) {
             const target = `https://poe.ninja/poe1/api/economy/stash/current/currency/overview?league=${encodeURIComponent(league)}&type=Currency`;
             return `${PROXY}${encodeURIComponent(target)}`;
+        }
+
+        function extractPricesFromExchangeData(data) {
+            const lines = Array.isArray(data?.lines) ? data.lines : [];
+            const items = Array.isArray(data?.items) ? data.items : [];
+            if (!lines.length || !items.length) return null;
+
+            const divineItem = items.find(item => item.name === 'Divine Orb');
+            const volatileItem = items.find(item => item.name === 'Volatile Vaal Orb');
+            if (!divineItem || !volatileItem) return null;
+
+            const divineLine = lines.find(line => line.id === divineItem.id);
+            const volatileLine = lines.find(line => line.id === volatileItem.id);
+            if (!divineLine || !volatileLine) return null;
+
+            const divineChaos = Number(divineLine.primaryValue);
+            const volatileChaos = Number(volatileLine.primaryValue);
+            if (!Number.isFinite(divineChaos) || !Number.isFinite(volatileChaos)) return null;
+
+            return { divineChaos, volatileChaos, source: 'exchange trades' };
+        }
+
+        function extractPricesFromStashData(data) {
+            const lines = Array.isArray(data?.lines) ? data.lines : [];
+            if (!lines.length) return null;
+
+            const divineLine = lines.find(line => line.currencyTypeName === 'Divine Orb');
+            const volatileLine = lines.find(line => line.currencyTypeName === 'Volatile Vaal Orb');
+            if (!divineLine || !volatileLine) return null;
+
+            const divineChaos = Number(divineLine.chaosEquivalent);
+            const volatileChaos = Number(volatileLine.chaosEquivalent);
+            if (!Number.isFinite(divineChaos) || !Number.isFinite(volatileChaos)) return null;
+
+            return { divineChaos, volatileChaos, source: 'stash listings' };
         }
 
         function setMarketStatus(message, tone = 'neutral') {
@@ -263,26 +303,32 @@
                 if (refreshButton) refreshButton.disabled = true;
                 setMarketStatus(`Fetching prices for ${league}...`);
 
-                const url = getMarketPricesUrl(league);
-                const data = await fetchJson(url);
-                const lines = Array.isArray(data.lines) ? data.lines : [];
+                let prices = null;
 
-                const divineLine = lines.find(line => line.currencyTypeName === 'Divine Orb');
-                const volatileLine = lines.find(line => line.currencyTypeName === 'Volatile Vaal Orb');
-                if (!divineLine || !volatileLine) throw new Error('Required currency rows were not found');
+                try {
+                    const exchangeData = await fetchJson(getExchangePricesUrl(league));
+                    prices = extractPricesFromExchangeData(exchangeData);
+                } catch (error) {
+                    prices = null;
+                }
 
-                const divineChaos = Number(divineLine.chaosEquivalent);
-                const volatileChaos = Number(volatileLine.chaosEquivalent);
-                if (!Number.isFinite(divineChaos) || !Number.isFinite(volatileChaos)) throw new Error('Invalid market values');
+                if (!prices) {
+                    const stashData = await fetchJson(getStashPricesUrl(league));
+                    prices = extractPricesFromStashData(stashData);
+                }
+
+                if (!prices) throw new Error('Could not resolve market values');
+
+                const { divineChaos, volatileChaos, source } = prices;
 
                 if (applyPrices) {
                     document.getElementById('divPrice').value = formatChaos(divineChaos);
                     document.getElementById('orbPrice').value = formatChaos(volatileChaos);
                     document.getElementById('orbUnit').value = 'c';
                     calculate();
-                    setMarketStatus(`Updated ${league}: 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c`, 'ok');
+                    setMarketStatus(`Updated ${league} (${source}): 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c`, 'ok');
                 } else {
-                    setMarketStatus(`Fetched ${league}: 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c (auto-fill is off)`);
+                    setMarketStatus(`Fetched ${league} (${source}): 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c (auto-fill is off)`);
                 }
             } catch (error) {
                 setMarketStatus(`Could not fetch ${league} prices from poe.ninja. Manual values remain active.`, 'error');
