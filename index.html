@@ -12,9 +12,18 @@
         body { background-color: var(--poe-bg); color: #e2e8f0; font-family: 'Inter', sans-serif; }
         h1, h2, h3, .poe-font { font-family: 'Cinzel', serif; }
         .card { background-color: var(--poe-card); border: 1px solid var(--poe-border); }
-        .input-group { display: flex; background: #000; border: 1px solid #444; border-radius: 2px; }
-        input, select { background: transparent; color: white; padding: 8px; outline: none; width: 100%; }
-        .input-group select { width: 50px; border-left: 1px solid #444; background: #1a1a1a; font-size: 0.7rem; }
+        input { background: transparent; color: white; outline: none; }
+        
+        /* Hide standard number input arrows */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield; /* Firefox */
+        }
+
         .btn-poe { background: linear-gradient(180deg, #5c4d32 0%, #3d3423 100%); border: 1px solid var(--poe-gold); color: var(--poe-gold); font-family: 'Cinzel'; transition: all 0.2s; cursor: pointer; }
         .btn-poe:hover { background: var(--poe-gold); color: black; box-shadow: 0 0 10px rgba(234, 179, 8, 0.3); }
         .mod-box { border-left: 2px solid var(--poe-gold); padding: 12px; margin-bottom: 20px; position: relative; background: rgba(255,255,255,0.02); }
@@ -27,7 +36,7 @@
 <body class="p-4 md:p-8">
 
     <div class="max-w-6xl mx-auto">
-        <header class="mb-8 flex flex-col md:flex-row justify-between items-center border-b border-yellow-900 pb-4">
+        <header class="mb-4 flex flex-col xl:flex-row justify-between items-center border-b border-yellow-900 pb-4 gap-4">
             <div class="text-center md:text-left flex items-center gap-4">
                 <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvVm9sYXRpbGVWYWFsT3JiIiwic2NhbGUiOjF9XQ/9bcdda2c63/VolatileVaalOrb.png" alt="Volatile Vaal Orb" class="w-12 h-12">
                 <div>
@@ -35,53 +44,100 @@
                     <p class="text-gray-500 text-[10px] tracking-[0.4em] uppercase">PoE 3.28 Investment Forecaster</p>
                 </div>
             </div>
-            <div class="mt-4 md:mt-0 bg-black p-2 border border-yellow-900 px-4 flex items-center gap-3">
-                <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="currency-icon" alt="Divine">
-                <label class="m-0">1 Divine =</label>
-                <input type="number" id="divPrice" value="315" class="bg-transparent text-yellow-500 w-16 font-mono font-bold text-center border-b border-gray-700 outline-none" onchange="calculate()">
-                <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="currency-icon" alt="Chaos">
+            
+            <div class="flex flex-col md:flex-row items-center gap-4 bg-black p-3 border border-yellow-900/40 rounded">
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <label class="text-[10px] text-yellow-600 m-0 poe-font">LEAGUE:</label>
+                        <input type="text" id="leagueName" list="leagueList" value="Mirage" class="bg-[#0a0a0a] border border-gray-800 p-1 text-xs w-28 text-white text-center" onchange="handleLeagueChange()">
+                        <datalist id="leagueList"></datalist>
+                        <button id="refreshMarketBtn" onclick="refreshMarketPrices(true)" class="btn-poe text-[10px] px-2 py-1 ml-1">Refresh API</button>
+                    </div>
+                    <div class="flex items-center gap-2 mt-2 pl-1">
+                        <input type="checkbox" id="autoMarket" class="align-middle w-3 h-3 cursor-pointer" checked onchange="handleAutoMarketToggle()">
+                        <span class="text-[9px] text-gray-400">Auto-fill values from poe.ninja</span>
+                    </div>
+                </div>
+
+                <div class="h-8 w-px bg-gray-800 hidden md:block"></div>
+
+                <div class="flex items-center gap-2 px-2">
+                    <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="currency-icon" alt="Divine">
+                    <label class="m-0 text-xs text-gray-300">1 DIV =</label>
+                    <input type="number" id="divPrice" value="315" class="bg-transparent text-yellow-500 w-16 font-mono font-bold text-center border-b border-gray-700 outline-none" onchange="calculate()">
+                    <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="currency-icon" alt="Chaos">
+                </div>
             </div>
         </header>
+        
+        <div id="marketStatus" class="text-[10px] text-gray-500 text-right mb-6 -mt-2">Loading market prices...</div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div class="space-y-6">
                 <div class="card p-5">
-                    <h2 class="text-sm text-yellow-500 mb-4 poe-font border-b border-yellow-900 pb-2">Investment Costs</h2>
-                    <div class="mb-4 p-3 border border-yellow-900/40 bg-black/40 space-y-3">
-                        <div>
-                            <label>League</label>
-                            <input type="text" id="leagueName" list="leagueList" value="Mirage" class="bg-black border border-gray-800 p-1 w-full text-sm" onchange="handleLeagueChange()">
-                            <datalist id="leagueList"></datalist>
-                        </div>
-                        <div class="flex items-center justify-between gap-2">
-                            <label class="m-0 text-[9px] text-gray-400 normal-case tracking-normal">
-                                <input type="checkbox" id="autoMarket" class="mr-1 align-middle" checked onchange="handleAutoMarketToggle()">
-                                Auto-fill Divine + Volatile prices from poe.ninja
-                            </label>
-                            <button id="refreshMarketBtn" onclick="refreshMarketPrices(true)" class="btn-poe text-[10px] px-2 py-1">Refresh</button>
-                        </div>
-                        <div id="marketStatus" class="text-[9px] text-gray-500">Loading market prices...</div>
-                    </div>
+                    <h2 class="text-sm text-yellow-500 mb-6 poe-font border-b border-yellow-900 pb-2">Investment Costs</h2>
+                    
                     <div class="space-y-4">
                         <div>
                             <label>Base Item Price</label>
-                            <div class="input-group">
-                                <input type="number" id="itemPrice" value="150" onchange="calculate()">
-                                <select id="itemUnit" onchange="calculate()"><option value="c">c</option><option value="d">d</option></select>
+                            <div class="flex items-center bg-black border border-gray-800 rounded-sm h-9 focus-within:border-gray-500 transition-colors">
+                                <input type="number" id="itemPrice" value="150" class="flex-1 bg-transparent text-white px-2 outline-none h-full w-full" onchange="calculate()">
+                                <div class="relative h-full flex custom-drop-container">
+                                    <div class="cursor-pointer px-2 hover:bg-gray-900 transition-colors flex items-center justify-center h-full rounded-r-sm" onclick="toggleCustomDrop('itemDropList')">
+                                        <img id="itemUnitImg" data-unit="c" src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
+                                        <svg class="w-3 h-3 ml-1 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                    <div id="itemDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 w-full min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
+                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center" onclick="selectDropOption('item', 'c')">
+                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
+                                        </div>
+                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('item', 'd')">
+                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain pointer-events-none" alt="Divine">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                         <div>
                             <label>Prep (Enchant/Quality/Fee)</label>
-                            <div class="input-group">
-                                <input type="number" id="prepPrice" value="0" onchange="calculate()">
-                                <select id="prepUnit" onchange="calculate()"><option value="c">c</option><option value="d">d</option></select>
+                            <div class="flex items-center bg-black border border-gray-800 rounded-sm h-9 focus-within:border-gray-500 transition-colors">
+                                <input type="number" id="prepPrice" value="0" class="flex-1 bg-transparent text-white px-2 outline-none h-full w-full" onchange="calculate()">
+                                <div class="relative h-full flex custom-drop-container">
+                                    <div class="cursor-pointer px-2 hover:bg-gray-900 transition-colors flex items-center justify-center h-full rounded-r-sm" onclick="toggleCustomDrop('prepDropList')">
+                                        <img id="prepUnitImg" data-unit="c" src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
+                                        <svg class="w-3 h-3 ml-1 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                    <div id="prepDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 w-full min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
+                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center" onclick="selectDropOption('prep', 'c')">
+                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
+                                        </div>
+                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('prep', 'd')">
+                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain pointer-events-none" alt="Divine">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                         <div>
                             <label>Volatile Orb Price</label>
-                            <div class="input-group">
-                                <input type="number" id="orbPrice" value="375" onchange="calculate()">
-                                <select id="orbUnit" onchange="calculate()"><option value="c">c</option><option value="d">d</option></select>
+                            <div class="flex items-center bg-black border border-gray-800 rounded-sm h-9 focus-within:border-gray-500 transition-colors">
+                                <input type="number" id="orbPrice" value="375" class="flex-1 bg-transparent text-white px-2 outline-none h-full w-full" onchange="calculate()">
+                                <div class="relative h-full flex custom-drop-container">
+                                    <div class="cursor-pointer px-2 hover:bg-gray-900 transition-colors flex items-center justify-center h-full rounded-r-sm" onclick="toggleCustomDrop('orbDropList')">
+                                        <img id="orbUnitImg" data-unit="c" src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
+                                        <svg class="w-3 h-3 ml-1 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                    <div id="orbDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 w-full min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
+                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center" onclick="selectDropOption('orb', 'c')">
+                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
+                                        </div>
+                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('orb', 'd')">
+                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain pointer-events-none" alt="Divine">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -162,6 +218,33 @@
     </div>
 
     <script>
+        // Currency Custom Dropdown Logic
+        const imgChaos = "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png";
+        const imgDivine = "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png";
+
+        function toggleCustomDrop(listId) {
+            // Close all others first
+            document.querySelectorAll('.custom-drop-list').forEach(el => {
+                if(el.id !== listId) el.classList.add('hidden');
+            });
+            document.getElementById(listId).classList.toggle('hidden');
+        }
+
+        function selectDropOption(prefix, unit) {
+            const imgEl = document.getElementById(prefix + 'UnitImg');
+            imgEl.dataset.unit = unit;
+            imgEl.src = unit === 'c' ? imgChaos : imgDivine;
+            document.getElementById(prefix + 'DropList').classList.add('hidden');
+            calculate();
+        }
+
+        // Close dropdowns if user clicks outside of them
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-drop-container')) {
+                document.querySelectorAll('.custom-drop-list').forEach(el => el.classList.add('hidden'));
+            }
+        });
+
         let chartInstance = null;
         const PROXY = 'https://poe-proxy.bernardo-7894.workers.dev/?url=';
         const MARKET_LEAGUES_URL = `${PROXY}${encodeURIComponent('https://api.poe.watch/leagues')}`;
@@ -217,11 +300,11 @@
 
             statusEl.textContent = message;
             if (tone === 'error') {
-                statusEl.className = 'text-[9px] text-red-500';
+                statusEl.className = 'text-[10px] text-red-500 text-right mb-6 -mt-2';
             } else if (tone === 'ok') {
-                statusEl.className = 'text-[9px] text-emerald-400';
+                statusEl.className = 'text-[10px] text-emerald-400 text-right mb-6 -mt-2';
             } else {
-                statusEl.className = 'text-[9px] text-gray-500';
+                statusEl.className = 'text-[10px] text-gray-500 text-right mb-6 -mt-2';
             }
         }
 
@@ -324,7 +407,10 @@
                 if (applyPrices) {
                     document.getElementById('divPrice').value = formatChaos(divineChaos);
                     document.getElementById('orbPrice').value = formatChaos(volatileChaos);
-                    document.getElementById('orbUnit').value = 'c';
+                    
+                    // Reset Volatile orb unit custom dropdown to Chaos gracefully
+                    selectDropOption('orb', 'c');
+                    
                     calculate();
                     setMarketStatus(`Updated ${league} (${source}): 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c`, 'ok');
                 } else {
@@ -367,9 +453,9 @@
 
         function calculate() {
             const divRatio = parseFloat(document.getElementById('divPrice').value) || 315;
-            const itemC = getC('itemPrice', 'itemUnit', divRatio);
-            const prepC = getC('prepPrice', 'prepUnit', divRatio);
-            const orbC = getC('orbPrice', 'orbUnit', divRatio);
+            const itemC = getC('itemPrice', 'item', divRatio);
+            const prepC = getC('prepPrice', 'prep', divRatio);
+            const orbC = getC('orbPrice', 'orb', divRatio);
             const totalBaseC = itemC + prepC;
 
             const mods = Array.from(document.querySelectorAll('.mod-box')).map(el => {
@@ -427,9 +513,11 @@
             updateChart(mods[0]);
         }
 
-        function getC(id, uId, r) {
+        function getC(id, prefix, r) {
             const v = parseFloat(document.getElementById(id).value) || 0;
-            return document.getElementById(uId).value === 'd' ? v * r : v;
+            // Now checks the dataset of the image within the custom dropdown
+            const unit = document.getElementById(prefix + 'UnitImg').dataset.unit;
+            return unit === 'd' ? v * r : v;
         }
 
         function updateChart(mod) {
