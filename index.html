@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoE 3.28: Volatile Analyst Pro</title>
+    <title>Volatile Analyst</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,50 +12,45 @@
         body { background-color: var(--poe-bg); color: #e2e8f0; font-family: 'Inter', sans-serif; }
         h1, h2, h3, .poe-font { font-family: 'Cinzel', serif; }
         .card { background-color: var(--poe-card); border: 1px solid var(--poe-border); }
-        input { background: transparent; color: white; outline: none; }
-        
-        /* Hide standard number input arrows */
+        input, select { background: transparent; color: white; outline: none; }
         input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield; /* Firefox */
-        }
-
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
         .btn-poe { background: linear-gradient(180deg, #5c4d32 0%, #3d3423 100%); border: 1px solid var(--poe-gold); color: var(--poe-gold); font-family: 'Cinzel'; transition: all 0.2s; cursor: pointer; }
-        .btn-poe:hover { background: var(--poe-gold); color: black; box-shadow: 0 0 10px rgba(234, 179, 8, 0.3); }
+        .btn-poe:hover:not(:disabled) { background: var(--poe-gold); color: black; box-shadow: 0 0 10px rgba(234, 179, 8, 0.3); }
+        .btn-poe:disabled { cursor: wait; opacity: 0.5; }
         .mod-box { border-left: 2px solid var(--poe-gold); padding: 12px; margin-bottom: 20px; position: relative; background: rgba(255,255,255,0.02); }
         label { display: block; font-size: 0.65rem; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
         .base-clarification { font-size: 0.55rem; color: #eab308; opacity: 0.8; font-style: italic; display: none; margin-bottom: 8px; border-bottom: 1px solid #3d3423; padding-bottom: 4px; }
         .multiplier-input { width: 45px !important; text-align: center; border-bottom: 1px solid #555 !important; padding: 0 !important; font-size: 0.75rem; color: #eab308; }
         .currency-icon { width: 24px; height: 24px; object-fit: contain; }
+        .item-results { max-height: 320px; overflow-y: auto; scrollbar-color: #594a2e #111; }
+        .item-result:hover, .item-result[aria-selected="true"] { background: rgba(234, 179, 8, 0.10); }
+        .item-price-readonly { color: #eab308; cursor: default; }
     </style>
 </head>
 <body class="p-4 md:p-8">
-
     <div class="max-w-6xl mx-auto">
         <header class="mb-4 flex flex-col xl:flex-row justify-between items-center border-b border-yellow-900 pb-4 gap-4">
             <div class="text-center md:text-left flex items-center gap-4">
                 <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvVm9sYXRpbGVWYWFsT3JiIiwic2NhbGUiOjF9XQ/9bcdda2c63/VolatileVaalOrb.png" alt="Volatile Vaal Orb" class="w-12 h-12">
                 <div>
                     <h1 class="text-4xl font-bold text-yellow-600">Volatile Analyst</h1>
-                    <p class="text-gray-500 text-[10px] tracking-[0.4em] uppercase">PoE 3.28 Investment Forecaster</p>
+                    <p class="text-gray-500 text-[10px] tracking-[0.4em] uppercase">PoE 1 Investment Forecaster</p>
                 </div>
             </div>
-            
+
             <div class="flex flex-col md:flex-row items-center gap-4 bg-black p-3 border border-yellow-900/40 rounded">
                 <div class="flex flex-col">
                     <div class="flex items-center gap-2">
-                        <label class="text-[10px] text-yellow-600 m-0 poe-font">LEAGUE:</label>
+                        <label class="text-[10px] text-yellow-600 m-0 poe-font">League:</label>
                         <input type="text" id="leagueName" list="leagueList" value="Mirage" class="bg-[#0a0a0a] border border-gray-800 p-1 text-xs w-28 text-white text-center" onchange="handleLeagueChange()">
                         <datalist id="leagueList"></datalist>
                         <button id="refreshMarketBtn" onclick="refreshMarketPrices(true)" class="btn-poe text-[10px] px-2 py-1 ml-1">Refresh API</button>
                     </div>
                     <div class="flex items-center gap-2 mt-2 pl-1">
                         <input type="checkbox" id="autoMarket" class="align-middle w-3 h-3 cursor-pointer" checked onchange="handleAutoMarketToggle()">
-                        <span class="text-[9px] text-gray-400">Auto-fill values from poe.ninja</span>
+                        <span class="text-[9px] text-gray-400">Auto-fill currency and orb values</span>
                     </div>
                 </div>
 
@@ -63,40 +58,67 @@
 
                 <div class="flex items-center gap-2 px-2">
                     <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="currency-icon" alt="Divine">
-                    <label class="m-0 text-xs text-gray-300">1 DIV =</label>
+                    <label class="m-0 text-xs text-gray-300">1 Div =</label>
                     <input type="number" id="divPrice" value="315" class="bg-transparent text-yellow-500 w-16 font-mono font-bold text-center border-b border-gray-700 outline-none" onchange="calculate()">
                     <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="currency-icon" alt="Chaos">
                 </div>
             </div>
         </header>
-        
+
         <div id="marketStatus" class="text-[10px] text-gray-500 text-right mb-6 -mt-2">Loading market prices...</div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div class="space-y-6">
                 <div class="card p-5">
                     <h2 class="text-sm text-yellow-500 mb-6 poe-font border-b border-yellow-900 pb-2">Investment Costs</h2>
-                    
                     <div class="space-y-4">
                         <div>
-                            <label>Base Item Price</label>
+                            <label for="itemSearch">Base Item</label>
+                            <div class="relative" id="itemSearchContainer">
+                                <div class="flex items-center bg-black border border-gray-800 rounded-sm h-11 focus-within:border-yellow-800 transition-colors">
+                                    <div class="w-11 h-11 p-1.5 border-r border-gray-800 flex items-center justify-center shrink-0">
+                                        <img id="selectedItemIcon" src="https://web.poecdn.com/image/Art/2DItems/Amulets/MarbleAmulet.png" class="max-w-full max-h-full object-contain opacity-30" alt="Selected item">
+                                    </div>
+                                    <input type="search" id="itemSearch" autocomplete="off" placeholder="Search unique items, e.g. Bonemeld" class="flex-1 px-3 h-full text-sm min-w-0" onfocus="handleItemSearchFocus()" oninput="handleItemSearchInput()" onkeydown="handleItemSearchKeydown(event)">
+                                    <button type="button" id="clearItemBtn" onclick="clearSelectedItem()" class="hidden px-3 h-full text-gray-600 hover:text-white" aria-label="Clear selected item">×</button>
+                                </div>
+                                <div id="itemResults" role="listbox" class="item-results hidden absolute left-0 right-0 top-full mt-1 bg-[#111] border border-gray-700 z-50 rounded-sm shadow-2xl"></div>
+                            </div>
+                            <div id="itemSearchStatus" class="text-[9px] text-gray-600 mt-1 min-h-[14px]">Searches poe.ninja unique weapons, armour, accessories, jewels and flasks.</div>
+                        </div>
+
+                        <div id="selectedItemDetails" class="hidden bg-black/70 border border-yellow-900/30 p-3 rounded-sm">
+                            <div class="flex gap-3 items-center">
+                                <img id="selectedItemDetailIcon" class="w-10 h-10 object-contain shrink-0" alt="">
+                                <div class="min-w-0 flex-1">
+                                    <div id="selectedItemName" class="text-sm text-yellow-500 font-semibold truncate"></div>
+                                    <div id="selectedItemMeta" class="text-[9px] text-gray-500 truncate"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center gap-2">
+                                <label for="itemPrice" class="mb-1">Item Price</label>
+                                <label class="m-0 normal-case tracking-normal flex items-center gap-1.5 cursor-pointer text-[9px] text-gray-400">
+                                    <input type="checkbox" id="customItemPrice" class="w-3 h-3" onchange="handleCustomItemPriceToggle()">
+                                    Custom price
+                                </label>
+                            </div>
                             <div class="flex items-center bg-black border border-gray-800 rounded-sm h-9 focus-within:border-gray-500 transition-colors">
-                                <input type="number" id="itemPrice" value="150" class="flex-1 bg-transparent text-white px-2 outline-none h-full w-full" onchange="calculate()">
+                                <input type="number" id="itemPrice" value="0" readonly class="item-price-readonly flex-1 bg-transparent px-2 outline-none h-full w-full" oninput="calculate()" onchange="calculate()">
                                 <div class="relative h-full flex custom-drop-container">
                                     <div class="cursor-pointer px-2 hover:bg-gray-900 transition-colors flex items-center justify-center h-full rounded-r-sm" onclick="toggleCustomDrop('itemDropList')">
                                         <img id="itemUnitImg" data-unit="c" src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
                                         <svg class="w-3 h-3 ml-1 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
-                                    <div id="itemDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 w-full min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
-                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center" onclick="selectDropOption('item', 'c')">
-                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
-                                        </div>
-                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('item', 'd')">
-                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain pointer-events-none" alt="Divine">
-                                        </div>
+                                    <div id="itemDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
+                                        <button type="button" class="p-2 hover:bg-gray-800 w-full flex items-center justify-center" onclick="selectDropOption('item', 'c')"><img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain" alt="Chaos"></button>
+                                        <button type="button" class="p-2 hover:bg-gray-800 w-full flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('item', 'd')"><img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain" alt="Divine"></button>
                                     </div>
                                 </div>
                             </div>
+                            <div id="itemPriceSource" class="text-[9px] text-gray-600 mt-1">Select an item to load its poe.ninja price, or enable a custom price.</div>
                         </div>
 
                         <div>
@@ -108,13 +130,9 @@
                                         <img id="prepUnitImg" data-unit="c" src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
                                         <svg class="w-3 h-3 ml-1 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
-                                    <div id="prepDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 w-full min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
-                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center" onclick="selectDropOption('prep', 'c')">
-                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
-                                        </div>
-                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('prep', 'd')">
-                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain pointer-events-none" alt="Divine">
-                                        </div>
+                                    <div id="prepDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
+                                        <button type="button" class="p-2 hover:bg-gray-800 w-full flex items-center justify-center" onclick="selectDropOption('prep', 'c')"><img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain" alt="Chaos"></button>
+                                        <button type="button" class="p-2 hover:bg-gray-800 w-full flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('prep', 'd')"><img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain" alt="Divine"></button>
                                     </div>
                                 </div>
                             </div>
@@ -129,13 +147,9 @@
                                         <img id="orbUnitImg" data-unit="c" src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
                                         <svg class="w-3 h-3 ml-1 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
-                                    <div id="orbDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 w-full min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
-                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center" onclick="selectDropOption('orb', 'c')">
-                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain pointer-events-none" alt="Chaos">
-                                        </div>
-                                        <div class="p-2 hover:bg-gray-800 cursor-pointer flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('orb', 'd')">
-                                            <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain pointer-events-none" alt="Divine">
-                                        </div>
+                                    <div id="orbDropList" class="custom-drop-list hidden absolute top-full right-0 mt-1 min-w-[3rem] bg-[#141414] border border-gray-700 z-50 rounded-sm shadow-xl">
+                                        <button type="button" class="p-2 hover:bg-gray-800 w-full flex items-center justify-center" onclick="selectDropOption('orb', 'c')"><img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="w-5 h-5 object-contain" alt="Chaos"></button>
+                                        <button type="button" class="p-2 hover:bg-gray-800 w-full flex items-center justify-center border-t border-gray-800" onclick="selectDropOption('orb', 'd')"><img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" class="w-5 h-5 object-contain" alt="Divine"></button>
                                     </div>
                                 </div>
                             </div>
@@ -150,24 +164,19 @@
                     </div>
                     <div id="modContainer">
                         <div class="mod-box">
-                            <span class="base-clarification">SPECIFY RAW BASE VALUES BEFORE QUALITY/ENCHANTS:</span>
+                            <span class="base-clarification">Specify raw base values before quality/enchants:</span>
                             <div class="grid grid-cols-2 gap-2">
                                 <div><label>Min</label><input type="number" class="modMin bg-black border border-gray-800 p-1 w-full text-sm" value="10" onchange="calculate()"></div>
                                 <div><label>Max</label><input type="number" class="modMax bg-black border border-gray-800 p-1 w-full text-sm" value="20" onchange="calculate()"></div>
                             </div>
-                            <div class="mt-2">
-                                <label>Target Value</label>
-                                <input type="number" class="modTarget bg-black border border-gray-800 p-1 w-full text-sm" value="28" onchange="calculate()">
-                            </div>
+                            <div class="mt-2"><label>Target Value</label><input type="number" class="modTarget bg-black border border-gray-800 p-1 w-full text-sm" value="28" onchange="calculate()"></div>
                             <select class="modMode bg-black border border-gray-800 p-1 w-full text-[10px] mt-2 text-gray-400" onchange="calculate()">
                                 <option value="atLeast" selected>Result is ≥ Target (Max)</option>
                                 <option value="atMost">Result is ≤ Target (Min)</option>
                             </select>
                             <div class="flex items-center gap-2 mt-3">
                                 <input type="checkbox" class="modExtToggle w-3 h-3 cursor-pointer" checked onchange="calculate()">
-                                <label class="m-0 text-[9px] text-gray-400 cursor-pointer">
-                                    Final Multiplier: +<input type="number" class="multiplier-input modExtVal" value="20" onchange="calculate()">%
-                                </label>
+                                <label class="m-0 text-[9px] text-gray-400 cursor-pointer">Final Multiplier: +<input type="number" class="multiplier-input modExtVal" value="20" onchange="calculate()">%</label>
                             </div>
                         </div>
                     </div>
@@ -189,7 +198,7 @@
                         <div id="resAvgChaos" class="text-xs text-gray-400">-</div>
                     </div>
                     <div class="card p-4 text-center border-red-900/50 relative overflow-hidden">
-                         <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="absolute -right-2 -bottom-2 w-16 opacity-10 pointer-events-none" alt="">
+                        <img src="https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" class="absolute -right-2 -bottom-2 w-16 opacity-10 pointer-events-none" alt="">
                         <label>95% Confidence Cost</label>
                         <div id="resRisk" class="text-3xl font-bold text-red-600 poe-font">-</div>
                         <p class="text-[9px] text-gray-500 mt-1 uppercase italic">Safety budget for bad luck</p>
@@ -198,9 +207,7 @@
 
                 <div class="card p-6 min-h-[450px]">
                     <h3 class="poe-font text-yellow-600 mb-4 text-xs tracking-widest uppercase">Outcome Weighting Distribution (Mod 1)</h3>
-                    <div class="relative h-[380px]">
-                        <canvas id="distChart"></canvas>
-                    </div>
+                    <div class="relative h-[380px]"><canvas id="distChart"></canvas></div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -210,7 +217,7 @@
                     </div>
                     <div class="card p-3 text-[10px] uppercase text-gray-400 flex justify-between items-center px-6">
                         <span>Avg Bases Bought: <span id="statBases" class="text-white ml-2 font-mono">-</span></span>
-                        <div class="w-6 h-6 border border-gray-700 bg-gray-900 rounded-sm"></div>
+                        <img id="statBaseIcon" src="https://web.poecdn.com/image/Art/2DItems/Amulets/MarbleAmulet.png" class="w-6 h-6 object-contain opacity-30" alt="Base item">
                     </div>
                 </div>
             </div>
@@ -218,14 +225,25 @@
     </div>
 
     <script>
-        // Currency Custom Dropdown Logic
         const imgChaos = "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png";
         const imgDivine = "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png";
+        const placeholderItemIcon = "https://web.poecdn.com/image/Art/2DItems/Amulets/MarbleAmulet.png";
+        const PROXY = 'https://poe-proxy.bernardo-7894.workers.dev/?url=';
+        const MARKET_LEAGUES_URL = `${PROXY}${encodeURIComponent('https://api.poe.watch/leagues')}`;
+        const ITEM_CATEGORIES = ['UniqueAccessory', 'UniqueArmour', 'UniqueWeapon', 'UniqueJewel', 'UniqueFlask'];
+        const ITEM_RESULT_LIMIT = 25;
+
+        let chartInstance = null;
+        let itemCatalog = [];
+        let itemCatalogLeague = '';
+        let itemCatalogPromise = null;
+        let selectedItem = null;
+        let visibleItemResults = [];
+        let highlightedItemIndex = -1;
 
         function toggleCustomDrop(listId) {
-            // Close all others first
             document.querySelectorAll('.custom-drop-list').forEach(el => {
-                if(el.id !== listId) el.classList.add('hidden');
+                if (el.id !== listId) el.classList.add('hidden');
             });
             document.getElementById(listId).classList.toggle('hidden');
         }
@@ -238,16 +256,12 @@
             calculate();
         }
 
-        // Close dropdowns if user clicks outside of them
-        window.addEventListener('click', function(e) {
-            if (!e.target.closest('.custom-drop-container')) {
+        window.addEventListener('click', event => {
+            if (!event.target.closest('.custom-drop-container')) {
                 document.querySelectorAll('.custom-drop-list').forEach(el => el.classList.add('hidden'));
             }
+            if (!event.target.closest('#itemSearchContainer')) hideItemResults();
         });
-
-        let chartInstance = null;
-        const PROXY = 'https://poe-proxy.bernardo-7894.workers.dev/?url=';
-        const MARKET_LEAGUES_URL = `${PROXY}${encodeURIComponent('https://api.poe.watch/leagues')}`;
 
         function getExchangePricesUrl(league) {
             const target = `https://poe.ninja/poe1/api/economy/exchange/current/overview?league=${encodeURIComponent(league)}&type=Currency`;
@@ -259,63 +273,280 @@
             return `${PROXY}${encodeURIComponent(target)}`;
         }
 
-        function extractPricesFromExchangeData(data) {
-            const lines = Array.isArray(data?.lines) ? data.lines : [];
-            const items = Array.isArray(data?.items) ? data.items : [];
-            if (!lines.length || !items.length) return null;
-
-            const divineItem = items.find(item => item.name === 'Divine Orb');
-            const volatileItem = items.find(item => item.name === 'Volatile Vaal Orb');
-            if (!divineItem || !volatileItem) return null;
-
-            const divineLine = lines.find(line => line.id === divineItem.id);
-            const volatileLine = lines.find(line => line.id === volatileItem.id);
-            if (!divineLine || !volatileLine) return null;
-
-            const divineChaos = Number(divineLine.primaryValue);
-            const volatileChaos = Number(volatileLine.primaryValue);
-            if (!Number.isFinite(divineChaos) || !Number.isFinite(volatileChaos)) return null;
-
-            return { divineChaos, volatileChaos, source: 'exchange trades' };
-        }
-
-        function extractPricesFromStashData(data) {
-            const lines = Array.isArray(data?.lines) ? data.lines : [];
-            if (!lines.length) return null;
-
-            const divineLine = lines.find(line => line.currencyTypeName === 'Divine Orb');
-            const volatileLine = lines.find(line => line.currencyTypeName === 'Volatile Vaal Orb');
-            if (!divineLine || !volatileLine) return null;
-
-            const divineChaos = Number(divineLine.chaosEquivalent);
-            const volatileChaos = Number(volatileLine.chaosEquivalent);
-            if (!Number.isFinite(divineChaos) || !Number.isFinite(volatileChaos)) return null;
-
-            return { divineChaos, volatileChaos, source: 'stash listings' };
-        }
-
-        function setMarketStatus(message, tone = 'neutral') {
-            const statusEl = document.getElementById('marketStatus');
-            if (!statusEl) return;
-
-            statusEl.textContent = message;
-            if (tone === 'error') {
-                statusEl.className = 'text-[10px] text-red-500 text-right mb-6 -mt-2';
-            } else if (tone === 'ok') {
-                statusEl.className = 'text-[10px] text-emerald-400 text-right mb-6 -mt-2';
-            } else {
-                statusEl.className = 'text-[10px] text-gray-500 text-right mb-6 -mt-2';
-            }
-        }
-
-        function formatChaos(value) {
-            return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+        function getItemOverviewUrl(league, type) {
+            const target = `https://poe.ninja/poe1/api/economy/stash/current/item/overview?league=${encodeURIComponent(league)}&type=${encodeURIComponent(type)}`;
+            return `${PROXY}${encodeURIComponent(target)}`;
         }
 
         async function fetchJson(url) {
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return response.json();
+        }
+
+        function extractPricesFromExchangeData(data) {
+            const lines = Array.isArray(data?.lines) ? data.lines : [];
+            const items = Array.isArray(data?.items) ? data.items : [];
+            if (!lines.length || !items.length) return null;
+            const divineItem = items.find(item => item.name === 'Divine Orb');
+            const volatileItem = items.find(item => item.name === 'Volatile Vaal Orb');
+            if (!divineItem || !volatileItem) return null;
+            const divineLine = lines.find(line => line.id === divineItem.id);
+            const volatileLine = lines.find(line => line.id === volatileItem.id);
+            const divineChaos = Number(divineLine?.primaryValue);
+            const volatileChaos = Number(volatileLine?.primaryValue);
+            if (!Number.isFinite(divineChaos) || !Number.isFinite(volatileChaos)) return null;
+            return { divineChaos, volatileChaos, source: 'exchange trades' };
+        }
+
+        function extractPricesFromStashData(data) {
+            const lines = Array.isArray(data?.lines) ? data.lines : [];
+            const divineLine = lines.find(line => line.currencyTypeName === 'Divine Orb');
+            const volatileLine = lines.find(line => line.currencyTypeName === 'Volatile Vaal Orb');
+            const divineChaos = Number(divineLine?.chaosEquivalent);
+            const volatileChaos = Number(volatileLine?.chaosEquivalent);
+            if (!Number.isFinite(divineChaos) || !Number.isFinite(volatileChaos)) return null;
+            return { divineChaos, volatileChaos, source: 'stash listings' };
+        }
+
+        function normalizeItemLine(line, category) {
+            const chaosValue = Number(line?.chaosValue ?? line?.chaosEquivalent ?? line?.primaryValue);
+            if (!line?.name || !Number.isFinite(chaosValue)) return null;
+            const identity = [line.name, line.baseType || '', line.variant || '', line.links || '', category].join('|');
+            return {
+                identity,
+                name: line.name,
+                baseType: line.baseType || category.replace('Unique', 'Unique '),
+                variant: line.variant || '',
+                links: Number(line.links) || 0,
+                icon: line.icon || placeholderItemIcon,
+                chaosValue,
+                divineValue: Number(line.divineValue),
+                listingCount: Number(line.listingCount ?? line.count) || 0,
+                category
+            };
+        }
+
+        function deduplicateItems(items) {
+            const byIdentity = new Map();
+            items.forEach(item => {
+                const existing = byIdentity.get(item.identity);
+                if (!existing || item.listingCount > existing.listingCount) byIdentity.set(item.identity, item);
+            });
+            return Array.from(byIdentity.values()).sort((a, b) => a.name.localeCompare(b.name) || b.listingCount - a.listingCount);
+        }
+
+        async function loadItemCatalog(force = false) {
+            const league = (document.getElementById('leagueName').value || '').trim();
+            if (!league) throw new Error('No league selected');
+            if (!force && itemCatalogLeague === league && itemCatalog.length) return itemCatalog;
+            if (!force && itemCatalogPromise && itemCatalogLeague === league) return itemCatalogPromise;
+
+            itemCatalogLeague = league;
+            setItemSearchStatus(`Loading unique items for ${league}...`);
+            itemCatalogPromise = Promise.allSettled(
+                ITEM_CATEGORIES.map(async category => {
+                    const data = await fetchJson(getItemOverviewUrl(league, category));
+                    const lines = Array.isArray(data?.lines) ? data.lines : [];
+                    return lines.map(line => normalizeItemLine(line, category)).filter(Boolean);
+                })
+            ).then(results => {
+                const loaded = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
+                itemCatalog = deduplicateItems(loaded);
+                if (!itemCatalog.length) throw new Error('No unique items returned');
+                setItemSearchStatus(`${itemCatalog.length.toLocaleString()} priced uniques loaded for ${league}.`);
+                return itemCatalog;
+            }).catch(error => {
+                itemCatalog = [];
+                setItemSearchStatus(`Could not load item prices for ${league}. Custom pricing is still available.`, true);
+                throw error;
+            }).finally(() => {
+                itemCatalogPromise = null;
+            });
+
+            return itemCatalogPromise;
+        }
+
+        function setItemSearchStatus(message, isError = false) {
+            const element = document.getElementById('itemSearchStatus');
+            element.textContent = message;
+            element.className = `text-[9px] mt-1 min-h-[14px] ${isError ? 'text-red-500' : 'text-gray-600'}`;
+        }
+
+        async function handleItemSearchFocus() {
+            try {
+                await loadItemCatalog();
+                renderItemResults(document.getElementById('itemSearch').value);
+            } catch (_) {
+                // Error is already presented inline.
+            }
+        }
+
+        async function handleItemSearchInput() {
+            try {
+                await loadItemCatalog();
+                renderItemResults(document.getElementById('itemSearch').value);
+            } catch (_) {
+                hideItemResults();
+            }
+        }
+
+        function tokenizeQuery(query) {
+            return query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+        }
+
+        function itemSearchScore(item, tokens, rawQuery) {
+            const name = item.name.toLowerCase();
+            const searchable = `${item.name} ${item.baseType} ${item.variant}`.toLowerCase();
+            if (!tokens.every(token => searchable.includes(token))) return -1;
+            let score = 0;
+            if (name === rawQuery) score += 1000;
+            else if (name.startsWith(rawQuery)) score += 500;
+            else if (name.includes(rawQuery)) score += 250;
+            score += Math.min(item.listingCount, 100);
+            return score;
+        }
+
+        function renderItemResults(query) {
+            const resultsElement = document.getElementById('itemResults');
+            const rawQuery = query.toLowerCase().trim();
+            const tokens = tokenizeQuery(query);
+
+            visibleItemResults = itemCatalog
+                .map(item => ({ item, score: tokens.length ? itemSearchScore(item, tokens, rawQuery) : item.listingCount }))
+                .filter(entry => entry.score >= 0)
+                .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name))
+                .slice(0, ITEM_RESULT_LIMIT)
+                .map(entry => entry.item);
+
+            highlightedItemIndex = -1;
+            if (!visibleItemResults.length) {
+                resultsElement.innerHTML = '<div class="p-3 text-xs text-gray-500">No priced items matched that search.</div>';
+                resultsElement.classList.remove('hidden');
+                return;
+            }
+
+            resultsElement.innerHTML = visibleItemResults.map((item, index) => {
+                const price = `${formatChaos(item.chaosValue)}c`;
+                const secondary = [item.baseType, item.variant, item.links ? `${item.links}L` : ''].filter(Boolean).join(' · ');
+                return `<button type="button" role="option" data-index="${index}" aria-selected="false" class="item-result w-full p-2.5 flex items-center gap-3 text-left border-b border-gray-900 last:border-0" onclick="selectItemByIndex(${index})">
+                    <span class="w-10 h-10 flex items-center justify-center shrink-0"><img src="${escapeHtml(item.icon)}" class="max-w-full max-h-full object-contain" alt=""></span>
+                    <span class="min-w-0 flex-1"><span class="block text-sm text-yellow-500 truncate">${escapeHtml(item.name)}</span><span class="block text-[9px] text-gray-500 truncate">${escapeHtml(secondary)}</span></span>
+                    <span class="text-xs text-white font-mono shrink-0">${price}</span>
+                </button>`;
+            }).join('');
+            resultsElement.classList.remove('hidden');
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+        }
+
+        function selectItemByIndex(index) {
+            const item = visibleItemResults[index];
+            if (item) selectItem(item);
+        }
+
+        function selectItem(item) {
+            selectedItem = item;
+            document.getElementById('itemSearch').value = item.name;
+            document.getElementById('selectedItemIcon').src = item.icon;
+            document.getElementById('selectedItemIcon').classList.remove('opacity-30');
+            document.getElementById('selectedItemDetailIcon').src = item.icon;
+            document.getElementById('selectedItemName').textContent = item.name;
+            document.getElementById('selectedItemMeta').textContent = [item.baseType, item.variant, item.listingCount ? `${item.listingCount.toLocaleString()} listings` : ''].filter(Boolean).join(' · ');
+            document.getElementById('selectedItemDetails').classList.remove('hidden');
+            document.getElementById('clearItemBtn').classList.remove('hidden');
+            document.getElementById('statBaseIcon').src = item.icon;
+            document.getElementById('statBaseIcon').classList.remove('opacity-30');
+            document.getElementById('customItemPrice').checked = false;
+            updateItemPriceMode();
+            hideItemResults();
+        }
+
+        function clearSelectedItem() {
+            selectedItem = null;
+            document.getElementById('itemSearch').value = '';
+            document.getElementById('selectedItemIcon').src = placeholderItemIcon;
+            document.getElementById('selectedItemIcon').classList.add('opacity-30');
+            document.getElementById('selectedItemDetails').classList.add('hidden');
+            document.getElementById('clearItemBtn').classList.add('hidden');
+            document.getElementById('statBaseIcon').src = placeholderItemIcon;
+            document.getElementById('statBaseIcon').classList.add('opacity-30');
+            updateItemPriceMode();
+        }
+
+        function handleCustomItemPriceToggle() {
+            updateItemPriceMode();
+        }
+
+        function updateItemPriceMode() {
+            const custom = document.getElementById('customItemPrice').checked;
+            const priceInput = document.getElementById('itemPrice');
+            const source = document.getElementById('itemPriceSource');
+            priceInput.readOnly = !custom;
+            priceInput.classList.toggle('item-price-readonly', !custom);
+            priceInput.classList.toggle('text-white', custom);
+
+            if (custom) {
+                source.textContent = selectedItem ? `Custom override for ${selectedItem.name}. Uncheck to restore poe.ninja pricing.` : 'Custom item price; no poe.ninja item selected.';
+                source.className = 'text-[9px] text-yellow-700 mt-1';
+            } else if (selectedItem) {
+                selectDropOption('item', 'c');
+                priceInput.value = formatChaos(selectedItem.chaosValue);
+                const listingText = selectedItem.listingCount ? ` from ${selectedItem.listingCount.toLocaleString()} listings` : '';
+                source.textContent = `poe.ninja market value for ${itemCatalogLeague}: ${formatChaos(selectedItem.chaosValue)} chaos${listingText}.`;
+                source.className = 'text-[9px] text-gray-600 mt-1';
+            } else {
+                source.textContent = 'Select an item to load its poe.ninja price, or enable a custom price.';
+                source.className = 'text-[9px] text-gray-600 mt-1';
+            }
+            calculate();
+        }
+
+        function hideItemResults() {
+            document.getElementById('itemResults').classList.add('hidden');
+            highlightedItemIndex = -1;
+        }
+
+        function handleItemSearchKeydown(event) {
+            const resultsElement = document.getElementById('itemResults');
+            if (event.key === 'Escape') {
+                hideItemResults();
+                return;
+            }
+            if (resultsElement.classList.contains('hidden') || !visibleItemResults.length) return;
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                const direction = event.key === 'ArrowDown' ? 1 : -1;
+                highlightedItemIndex = (highlightedItemIndex + direction + visibleItemResults.length) % visibleItemResults.length;
+                updateHighlightedItem();
+            } else if (event.key === 'Enter' && highlightedItemIndex >= 0) {
+                event.preventDefault();
+                selectItemByIndex(highlightedItemIndex);
+            }
+        }
+
+        function updateHighlightedItem() {
+            document.querySelectorAll('#itemResults [role="option"]').forEach((element, index) => {
+                const active = index === highlightedItemIndex;
+                element.setAttribute('aria-selected', active ? 'true' : 'false');
+                if (active) element.scrollIntoView({ block: 'nearest' });
+            });
+        }
+
+        function setMarketStatus(message, tone = 'neutral') {
+            const statusElement = document.getElementById('marketStatus');
+            statusElement.textContent = message;
+            if (tone === 'error') statusElement.className = 'text-[10px] text-red-500 text-right mb-6 -mt-2';
+            else if (tone === 'ok') statusElement.className = 'text-[10px] text-emerald-400 text-right mb-6 -mt-2';
+            else statusElement.className = 'text-[10px] text-gray-500 text-right mb-6 -mt-2';
+        }
+
+        function formatChaos(value) {
+            const number = Number(value);
+            if (!Number.isFinite(number)) return '0';
+            return Number.isInteger(number) ? number.toFixed(0) : number.toFixed(number < 10 ? 2 : 1);
         }
 
         function isActiveLeague(league) {
@@ -333,9 +564,7 @@
 
         function populateLeagueSuggestions(leagues) {
             const dataList = document.getElementById('leagueList');
-            if (!dataList) return;
             dataList.innerHTML = '';
-
             leagues.forEach(league => {
                 const option = document.createElement('option');
                 option.value = league.name;
@@ -345,110 +574,114 @@
 
         async function initializeMarketData() {
             const leagueInput = document.getElementById('leagueName');
-            if (!leagueInput) return;
-
             try {
                 setMarketStatus('Loading leagues from poe.watch...');
                 const leagues = await fetchJson(MARKET_LEAGUES_URL);
-                if (!Array.isArray(leagues) || leagues.length === 0) throw new Error('No leagues returned');
-
+                if (!Array.isArray(leagues) || !leagues.length) throw new Error('No leagues returned');
                 populateLeagueSuggestions(leagues);
                 leagueInput.value = pickDefaultLeague(leagues);
-            } catch (error) {
+            } catch (_) {
                 setMarketStatus('Could not load leagues from poe.watch. Enter league manually.', 'error');
             }
-
             await refreshMarketPrices(true);
         }
 
         function handleAutoMarketToggle() {
-            if (document.getElementById('autoMarket').checked) {
-                refreshMarketPrices(true);
-            } else {
-                setMarketStatus('Auto-fill disabled. Manual values stay active.');
-            }
+            if (document.getElementById('autoMarket').checked) refreshMarketPrices(true);
+            else setMarketStatus('Auto-fill disabled. Manual currency and orb values stay active.');
         }
 
-        function handleLeagueChange() {
-            refreshMarketPrices(document.getElementById('autoMarket').checked);
+        async function handleLeagueChange() {
+            const oldSelection = selectedItem ? selectedItem.identity : null;
+            itemCatalog = [];
+            itemCatalogLeague = '';
+            itemCatalogPromise = null;
+            hideItemResults();
+            await refreshMarketPrices(document.getElementById('autoMarket').checked);
+            if (oldSelection) {
+                try {
+                    await loadItemCatalog(true);
+                    const match = itemCatalog.find(item => item.identity === oldSelection) || itemCatalog.find(item => item.name === selectedItem?.name);
+                    if (match) selectItem(match);
+                    else clearSelectedItem();
+                } catch (_) {
+                    if (!document.getElementById('customItemPrice').checked) clearSelectedItem();
+                }
+            }
         }
 
         async function refreshMarketPrices(applyPrices = false) {
             const league = (document.getElementById('leagueName').value || '').trim();
             const refreshButton = document.getElementById('refreshMarketBtn');
-
             if (!league) {
                 setMarketStatus('Enter a league name before fetching prices.', 'error');
                 return;
             }
 
             try {
-                if (refreshButton) refreshButton.disabled = true;
+                refreshButton.disabled = true;
                 setMarketStatus(`Fetching prices for ${league}...`);
-
                 let prices = null;
-
                 try {
-                    const exchangeData = await fetchJson(getExchangePricesUrl(league));
-                    prices = extractPricesFromExchangeData(exchangeData);
-                } catch (error) {
+                    prices = extractPricesFromExchangeData(await fetchJson(getExchangePricesUrl(league)));
+                } catch (_) {
                     prices = null;
                 }
-
-                if (!prices) {
-                    const stashData = await fetchJson(getStashPricesUrl(league));
-                    prices = extractPricesFromStashData(stashData);
-                }
-
+                if (!prices) prices = extractPricesFromStashData(await fetchJson(getStashPricesUrl(league)));
                 if (!prices) throw new Error('Could not resolve market values');
 
                 const { divineChaos, volatileChaos, source } = prices;
-
                 if (applyPrices) {
                     document.getElementById('divPrice').value = formatChaos(divineChaos);
                     document.getElementById('orbPrice').value = formatChaos(volatileChaos);
-                    
-                    // Reset Volatile orb unit custom dropdown to Chaos gracefully
                     selectDropOption('orb', 'c');
-                    
                     calculate();
                     setMarketStatus(`Updated ${league} (${source}): 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c`, 'ok');
                 } else {
                     setMarketStatus(`Fetched ${league} (${source}): 1 Divine = ${formatChaos(divineChaos)}c, Volatile Vaal Orb = ${formatChaos(volatileChaos)}c (auto-fill is off)`);
                 }
-            } catch (error) {
+
+                if (selectedItem && !document.getElementById('customItemPrice').checked) {
+                    try {
+                        await loadItemCatalog(true);
+                        const match = itemCatalog.find(item => item.identity === selectedItem.identity) || itemCatalog.find(item => item.name === selectedItem.name);
+                        if (match) selectItem(match);
+                    } catch (_) {
+                        // Currency refresh remains useful even when item endpoints fail.
+                    }
+                }
+            } catch (_) {
                 setMarketStatus(`Could not fetch ${league} prices from poe.ninja. Manual values remain active.`, 'error');
             } finally {
-                if (refreshButton) refreshButton.disabled = false;
+                refreshButton.disabled = false;
             }
         }
 
         function addModifier() {
-            const html = `
-                <div class="mod-box">
-                    <button onclick="this.parentElement.remove();calculate()" class="absolute top-0 right-1 text-red-900 text-xs">×</button>
-                    <span class="base-clarification">SPECIFY RAW BASE VALUES BEFORE QUALITY/ENCHANTS:</span>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div><label>Min</label><input type="number" class="modMin bg-black border border-gray-800 p-1 w-full text-sm" value="3" onchange="calculate()"></div>
-                        <div><label>Max</label><input type="number" class="modMax bg-black border border-gray-800 p-1 w-full text-sm" value="4" onchange="calculate()"></div>
-                    </div>
-                    <div class="mt-2">
-                        <label>Target Value</label>
-                        <input type="number" class="modTarget bg-black border border-gray-800 p-1 w-full text-sm" value="5" onchange="calculate()">
-                    </div>
-                    <select class="modMode bg-black border border-gray-800 p-1 w-full text-[10px] mt-2 text-gray-400" onchange="calculate()">
-                        <option value="atLeast" selected>Result is ≥ Target (Max)</option>
-                        <option value="atMost">Result is ≤ Target (Min)</option>
-                    </select>
-                    <div class="flex items-center gap-2 mt-3">
-                        <input type="checkbox" class="modExtToggle w-3 h-3 cursor-pointer" onchange="calculate()">
-                        <label class="m-0 text-[9px] text-gray-400 cursor-pointer">
-                            Final Multiplier: +<input type="number" class="multiplier-input modExtVal" value="8" onchange="calculate()">%
-                        </label>
-                    </div>
-                </div>`;
+            const html = `<div class="mod-box">
+                <button onclick="this.parentElement.remove();calculate()" class="absolute top-0 right-1 text-red-900 text-xs">×</button>
+                <span class="base-clarification">Specify raw base values before quality/enchants:</span>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label>Min</label><input type="number" class="modMin bg-black border border-gray-800 p-1 w-full text-sm" value="3" onchange="calculate()"></div>
+                    <div><label>Max</label><input type="number" class="modMax bg-black border border-gray-800 p-1 w-full text-sm" value="4" onchange="calculate()"></div>
+                </div>
+                <div class="mt-2"><label>Target Value</label><input type="number" class="modTarget bg-black border border-gray-800 p-1 w-full text-sm" value="5" onchange="calculate()"></div>
+                <select class="modMode bg-black border border-gray-800 p-1 w-full text-[10px] mt-2 text-gray-400" onchange="calculate()">
+                    <option value="atLeast" selected>Result is ≥ Target (Max)</option>
+                    <option value="atMost">Result is ≤ Target (Min)</option>
+                </select>
+                <div class="flex items-center gap-2 mt-3">
+                    <input type="checkbox" class="modExtToggle w-3 h-3 cursor-pointer" onchange="calculate()">
+                    <label class="m-0 text-[9px] text-gray-400 cursor-pointer">Final Multiplier: +<input type="number" class="multiplier-input modExtVal" value="8" onchange="calculate()">%</label>
+                </div>
+            </div>`;
             document.getElementById('modContainer').insertAdjacentHTML('beforeend', html);
             calculate();
+        }
+
+        function getC(id, prefix, ratio) {
+            const value = parseFloat(document.getElementById(id).value) || 0;
+            return document.getElementById(prefix + 'UnitImg').dataset.unit === 'd' ? value * ratio : value;
         }
 
         function calculate() {
@@ -458,88 +691,76 @@
             const orbC = getC('orbPrice', 'orb', divRatio);
             const totalBaseC = itemC + prepC;
 
-            const mods = Array.from(document.querySelectorAll('.mod-box')).map(el => {
-                const extActive = el.querySelector('.modExtToggle').checked;
-                el.querySelector('.base-clarification').style.display = extActive ? 'block' : 'none';
+            const mods = Array.from(document.querySelectorAll('.mod-box')).map(element => {
+                const extActive = element.querySelector('.modExtToggle').checked;
+                element.querySelector('.base-clarification').style.display = extActive ? 'block' : 'none';
                 return {
-                    min: parseInt(el.querySelector('.modMin').value),
-                    max: parseInt(el.querySelector('.modMax').value),
-                    target: parseInt(el.querySelector('.modTarget').value),
-                    mode: el.querySelector('.modMode').value,
-                    extActive: extActive,
-                    extVal: (parseInt(el.querySelector('.modExtVal').value) / 100) + 1
+                    min: parseInt(element.querySelector('.modMin').value),
+                    max: parseInt(element.querySelector('.modMax').value),
+                    target: parseInt(element.querySelector('.modTarget').value),
+                    mode: element.querySelector('.modMode').value,
+                    extActive,
+                    extVal: (parseInt(element.querySelector('.modExtVal').value) / 100) + 1
                 };
             });
-
-            if (mods.length === 0) return;
+            if (!mods.length) return;
 
             let totalProbPerSurvival = 1;
             mods.forEach(mod => {
                 let success = 0;
                 let combos = 0;
-                for (let r = mod.min; r <= mod.max; r++) {
-                    for (let m = 78; m <= 122; m++) {
-                        let res = Math.round(r * (m / 100));
-                        if (mod.extActive) res = Math.floor(res * mod.extVal);
-                        const isWin = mod.mode === 'atMost' ? res <= mod.target : res >= mod.target;
-                        if (isWin) success++;
+                for (let raw = mod.min; raw <= mod.max; raw++) {
+                    for (let multiplier = 78; multiplier <= 122; multiplier++) {
+                        let result = Math.round(raw * (multiplier / 100));
+                        if (mod.extActive) result = Math.floor(result * mod.extVal);
+                        if (mod.mode === 'atMost' ? result <= mod.target : result >= mod.target) success++;
                         combos++;
                     }
                 }
-                totalProbPerSurvival *= (success / combos);
+                totalProbPerSurvival *= success / combos;
             });
 
             const pFinal = 0.5 * totalProbPerSurvival;
             if (pFinal <= 0) {
-                document.getElementById('resProb').innerText = "Impossible";
-                document.getElementById('resAvgDiv').innerText = "-";
+                document.getElementById('resProb').innerText = 'Impossible';
+                document.getElementById('resAvgDiv').innerText = '-';
                 return;
             }
 
             const avgOrbs = 1 / pFinal;
-            const avgBases = 1 + (avgOrbs * 0.5);
-            const avgCostC = (avgOrbs * orbC) + (avgBases * totalBaseC);
+            const avgBases = 1 + avgOrbs * 0.5;
+            const avgCostC = avgOrbs * orbC + avgBases * totalBaseC;
             const riskOrbs = Math.log(1 - 0.95) / Math.log(1 - pFinal);
-            const riskBases = 1 + (riskOrbs * 0.5);
-            const riskCostC = (riskOrbs * orbC) + (riskBases * totalBaseC);
+            const riskBases = 1 + riskOrbs * 0.5;
+            const riskCostC = riskOrbs * orbC + riskBases * totalBaseC;
 
-            document.getElementById('resProb').innerText = (pFinal * 100).toFixed(3) + "%";
-            document.getElementById('resAvgDiv').innerText = (avgCostC / divRatio).toFixed(1) + " Div";
-            document.getElementById('resAvgChaos').innerText = Math.ceil(avgCostC).toLocaleString() + " Chaos";
-            document.getElementById('resRisk').innerText = (riskCostC / divRatio).toFixed(1) + " Div";
+            document.getElementById('resProb').innerText = `${(pFinal * 100).toFixed(3)}%`;
+            document.getElementById('resAvgDiv').innerText = `${(avgCostC / divRatio).toFixed(1)} Div`;
+            document.getElementById('resAvgChaos').innerText = `${Math.ceil(avgCostC).toLocaleString()} Chaos`;
+            document.getElementById('resRisk').innerText = `${(riskCostC / divRatio).toFixed(1)} Div`;
             document.getElementById('statOrbs').innerText = avgOrbs.toFixed(1);
             document.getElementById('statBases').innerText = avgBases.toFixed(1);
-
             updateChart(mods[0]);
         }
 
-        function getC(id, prefix, r) {
-            const v = parseFloat(document.getElementById(id).value) || 0;
-            // Now checks the dataset of the image within the custom dropdown
-            const unit = document.getElementById(prefix + 'UnitImg').dataset.unit;
-            return unit === 'd' ? v * r : v;
-        }
-
         function updateChart(mod) {
-            const freqs = {};
+            const frequencies = {};
             let total = 0;
-            for (let r = mod.min; r <= mod.max; r++) {
-                for (let m = 78; m <= 122; m++) {
-                    let res = Math.round(r * (m / 100));
-                    if (mod.extActive) res = Math.floor(res * mod.extVal);
-                    freqs[res] = (freqs[res] || 0) + 1;
+            for (let raw = mod.min; raw <= mod.max; raw++) {
+                for (let multiplier = 78; multiplier <= 122; multiplier++) {
+                    let result = Math.round(raw * (multiplier / 100));
+                    if (mod.extActive) result = Math.floor(result * mod.extVal);
+                    frequencies[result] = (frequencies[result] || 0) + 1;
                     total++;
                 }
             }
-            const labels = Object.keys(freqs).map(Number).sort((a,b) => a-b);
-            const data = labels.map(k => (freqs[k] / total) * 100);
-            const colors = labels.map(k => (mod.mode === 'atMost' ? k <= mod.target : k >= mod.target) ? 'rgba(234, 179, 8, 0.8)' : 'rgba(255, 255, 255, 0.05)');
-
+            const labels = Object.keys(frequencies).map(Number).sort((a, b) => a - b);
+            const data = labels.map(value => frequencies[value] / total * 100);
+            const colors = labels.map(value => (mod.mode === 'atMost' ? value <= mod.target : value >= mod.target) ? 'rgba(234, 179, 8, 0.8)' : 'rgba(255, 255, 255, 0.05)');
             if (chartInstance) chartInstance.destroy();
-            const ctx = document.getElementById('distChart').getContext('2d');
-            chartInstance = new Chart(ctx, {
+            chartInstance = new Chart(document.getElementById('distChart').getContext('2d'), {
                 type: 'bar',
-                data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
+                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
                 options: {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
@@ -550,6 +771,7 @@
                 }
             });
         }
+
         calculate();
         initializeMarketData();
     </script>
